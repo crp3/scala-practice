@@ -1,14 +1,13 @@
 object Append {
-    @annotation.tailrec
-    def foldLeft[A, B](list: List[A], element: B)(f: (B, A) => B): B = {
+    def foldRight[A, B](list: List[A], element: B)(f: (A, B) => B): B = {
         list match {
             case Nil => element
-            case x :: xs => foldLeft(xs, f(element, x))(f)
+            case x :: xs => f(x, foldRight(xs, element)(f))
         }
     }
 
     def append[A](list1: List[A], list2: List[A]): List[A] = {
-        foldLeft(list1, list2)((x, y) => y :: x)
+        foldRight(list1, list2)((x, y) => x :: y)
     }
 
     def main(args: Array[String]) = {
