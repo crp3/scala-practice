@@ -28,9 +28,9 @@ sealed trait Stream[+A] {
   }
 
   def take(n: Int): Stream[A] = this match {
-    case Cons(h, t) if(n > 0) => Cons(h, () => t().take(n-1))
-    case Cons(h, _) if(n == 0) => Cons(h, () => Empty)
-    case _ => Empty
+    case Cons(h, t) if(n > 0) => Stream.cons(h(), t().take(n-1))
+    case Cons(h, _) if(n == 0) => Stream.empty
+    case _ => Stream.empty
   }
 
   def drop(n: Int): Stream[A] = this match {
@@ -91,6 +91,42 @@ sealed trait Stream[+A] {
 }
 
 object Main {
+  //Infinite Streams
+  def constant[A](a: A): Stream[A] = {
+    lazy val constants: Stream[A] = Cons(() => a, () => constants)
+    constants
+  }
+
+  def from(n: Int): Stream[Int] = {
+    Stream.cons(n, from(n+1))
+  }
+
+  def fibs: Stream[Int] = {
+    def go(n: Int, m: Int): Stream[Int] = {
+      Stream.cons(n, go(m, n+m))
+    }
+    go(0, 1)
+  }
+
+  def unfold[A, S](z: S)(f: S => Option[(A, S)]): Stream[A] = {
+    f(z) match {
+      case Some((h, s)) => Stream.cons(h, unfold(s)(f))
+      case None => Stream.empty
+    }
+  }
+
+  def constantUsingUnfold[A](a: A): Stream[A] = {
+    unfold(a)(_ => Some(a, a))
+  }
+
+  def fromUsingUnfold(n: Int): Stream[Int] = {
+    unfold(n)(x => Some(x, x+1))
+  }
+
+  def fibsUsingUnfold: Stream[Int] = {
+    unfold((0, 1)){ case (x, y) => Some((x,(y, x+y))) }
+  }
+
   def main(args: Array[String]) = {
     val s = Stream(1, 2, 3, 4, 5)
     val s2 = Stream(6, 7, 8, 9, 10)
@@ -108,5 +144,20 @@ object Main {
     println(s.filterUsingFoldRight(_ * 2 < 9).toList)
     println(s.appendUsingFoldRight(s2).toList)
     println(s.flatMapUsingFoldRight(x => Stream(x, x, x)).toList)
+    val ones = constant(1)
+    val fromTest = from(100)
+    val fibs_ = fibs
+    println("Infinite streams from here")
+    println(ones.take(100).toList)
+    println(ones.forAll(_ != 1))
+    println(fromTest.take(100).toList)
+    println(fromTest.forAll(_ == 1))
+    println(fibs.take(100).toList)
+    val onse = constantUsingUnfold(1)
+    val formTest = fromUsingUnfold(100)
+    val fibs_2 = fibsUsingUnfold
+    println(onse.take(100).toList)
+    println(formTest.take(100).toList)
+    println(fibs_2.take(100).toList)
   }
 }
