@@ -88,6 +88,35 @@ sealed trait Stream[+A] {
   def flatMapUsingFoldRight[B>:A](f: A => Stream[B]): Stream[B] = {
     foldRight(Stream.empty[B])((h, t) => f(h) appendUsingFoldRight t)
   }
+
+  def mapUsingUnfold[B](f: A => B): Stream[B] = Main.unfold(this) {
+    case Cons(h, t) => Some((f(h()), t()))
+    case _ => None
+  }
+
+  def takeUsingUnfold(n: Int): Stream[A] = Main.unfold(this) { 
+    case Cons(h, t) if(n > 0) =>  Some((h(), t().takeUsingUnfold(n-1)))
+    case Cons(h, _) if(n == 0) => None
+    case _ => None
+  }
+
+  def takeWhileUsingUnfold(p: A => Boolean): Stream[A] = Main.unfold(this) {
+    case Cons(h, t) if p(h()) => Some((h(), t().takeWhileUsingUnfold(p)))
+    case _ => None
+  }
+
+  def zipWithUsingUnfold[B, C](s2: Stream[B])(f: (A, B) => C): Stream[C] = Main.unfold((this, s2)) {
+    case (Cons(h1, t1), Cons(h2, t2)) => Some((f(h1(), h2()), (t1(), t2())))
+    case (Empty, _) => None
+    case (_, Empty) => None
+  }
+
+  def tails: Stream[Stream[A]] = {
+    Main.unfold(this) {
+      case Empty => None
+      case s => Some((s, s drop 1))
+    } appendUsingFoldRight(Stream(Stream.empty))
+  }
 }
 
 object Main {
@@ -159,5 +188,10 @@ object Main {
     println(onse.take(100).toList)
     println(formTest.take(100).toList)
     println(fibs_2.take(100).toList)
+    println(s.mapUsingUnfold(x => x+18).toList)
+    println(s.takeUsingUnfold(5).toList)
+    println(s.takeWhileUsingUnfold(x => x <= 4).toList)
+    println(s.zipWithUsingUnfold(s2)(_+_).toList)
+    println(s.tails.toList.map(x => x.toList))
   }
 }
